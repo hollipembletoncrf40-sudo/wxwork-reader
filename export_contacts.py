@@ -75,43 +75,48 @@ def main():
         contacts.append(item)
         by_dept[dept_clean].append(item)
 
-    # 2.1 针对 SMT 项目组与 CNC 项目组全体成员进行 100% 精确归组映射 (依据企业微信官方组织架构树)
+    # 2.1 针对 国际事业部 与 集团核心架构进行 100% 精确归组映射 (依据企业微信官方组织架构树)
+    intl_div_dept = "嘉立创 / 国际事业部"
+    proj_sales_dept = "嘉立创 / 国际事业部 / 项目销售部"
     smt_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组"
     cnc_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / CNC项目组"
+    pcb_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / PCB项目组"
+    d3_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / 3D项目组"
+    eda_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / EDA与Layout项目组"
+    corp_biz_dept = "嘉立创 / 集团商务管理团队"
 
-    smt_members_patterns = [
-        "冯玉碟", "贺亚东", "龙钰", "曾小妹", "朱懿", "姜丽", "郭兰芳", "卢志粤",
-        "叶舒淇", "魏运添", "彭龙", "韦小燕", "李嘉衡", "付彩玉", "罗雪薇", "陈紫欣",
-        "黄骎菁", "张莹", "江灿", "刘芳君", "邓仰林", "冯龙", "杜博琳", "芦莹",
-        "张文佩", "张金燕", "李渊", "高子聪", "叶明鑫", "周敏", "管丹丹", "邬广武",
-        "沈伟槟", "邢小妹", "李思敏", "张清", "徐晓莹", "叶诗雅", "何敏"
-    ]
-
-    cnc_members_patterns = [
-        "覃凤娇", "赵伊莎", "赵靖棉", "吕诗影", "代传昊", "符汝岩", "蒋燕林", "柯望",
-        "陈诗英", "王洁颖", "麦柔莹", "李洁", "王蔚"
+    # 部门归属模式表
+    dept_mappings = [
+        # 集团商务代表
+        (["严垚垚", "宋绚绚", "赖怡静", "李成程", "董思月"], corp_biz_dept),
+        # 国际事业部直属
+        (["陈世周", "黎睿冰"], intl_div_dept),
+        # 项目销售部直属
+        (["王逸维"], proj_sales_dept),
+        # PCB 项目组
+        (["肖俊", "何望阳", "陈婧咏", "郭海波", "陈澄锋", "韦忠达", "何芳柔"], pcb_team_dept),
+        # 3D 项目组
+        (["张强（Ronen)", "潘迪生"], d3_team_dept),
+        # EDA 与 Layout
+        (["刘传涛"], eda_team_dept),
+        # CNC 项目组
+        (["覃凤娇", "赵伊莎", "赵靖棉", "吕诗影", "代传昊", "符汝岩", "蒋燕林", "柯望", "陈诗英", "王洁颖", "麦柔莹", "李洁", "王蔚"], cnc_team_dept),
+        # SMT 项目组
+        (["冯玉碟", "贺亚东", "龙钰", "曾小妹", "朱懿", "姜丽", "郭兰芳", "卢志粤", "叶舒淇", "魏运添", "彭龙", "韦小燕", "李嘉衡", "付彩玉", "罗雪薇", "陈紫欣", "黄骎菁", "张莹", "江灿", "刘芳君", "邓仰林", "冯龙", "杜博琳", "芦莹", "张文佩", "张金燕", "李渊", "高子聪", "叶明鑫", "周敏", "管丹丹", "邬广武", "沈伟槟", "邢小妹", "李思敏", "张清", "徐晓莹", "叶诗雅", "何敏"], smt_team_dept)
     ]
 
     for c in contacts:
-        # SMT 组匹配
-        if any(pat in c["name"] for pat in smt_members_patterns):
-            if c["department"] != smt_team_dept and c["name"] not in ["何敏 (韶关)", "何敏_韶关"]:
-                # 如果是何敏但主体是韶关工厂的保留，同名销售助理归到 SMT 组
-                if c["name"] == "何敏" and c.get("corp_name") == "韶关市嘉立创电子科技有限公司":
+        for patterns, target_dept in dept_mappings:
+            if any(pat in c["name"] for pat in patterns):
+                if c["name"] == "何敏" and c.get("corp_name") == "韶关市嘉立创电子科技有限公司" and target_dept == smt_team_dept:
                     continue
                 old_dept = c["department"]
-                if old_dept in by_dept and c in by_dept[old_dept]:
-                    by_dept[old_dept].remove(c)
-                c["department"] = smt_team_dept
-                by_dept[smt_team_dept].append(c)
-
-        # CNC 组匹配
-        elif any(pat in c["name"] for pat in cnc_members_patterns):
-            old_dept = c["department"]
-            if old_dept in by_dept and c in by_dept[old_dept]:
-                by_dept[old_dept].remove(c)
-            c["department"] = cnc_team_dept
-            by_dept[cnc_team_dept].append(c)
+                if old_dept != target_dept:
+                    if old_dept in by_dept and c in by_dept[old_dept]:
+                        by_dept[old_dept].remove(c)
+                    c["department"] = target_dept
+                    by_dept[target_dept].append(c)
+                break
 
     # 2.2 补齐截图中存在但在离线库未缓存的组员（严格按中文名去重）
     full_smt_roster = [
