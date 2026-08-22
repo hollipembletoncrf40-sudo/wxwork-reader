@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """
 企业微信通讯录与联系人导出工具 (Contact.db / session.db)
-导出 3,530 位联系人至 CSV, Excel, Markdown, JSON 及 HTML 可视化通讯录
+导出企业内部员工与外部微信客户至 CSV (Excel兼容), Markdown, JSON 及 HTML 可视化通讯录
 """
 
 import os
+import re
 import csv
 import json
 import sqlite3
 from datetime import datetime
 from collections import defaultdict
+from wxwork_reader import decode_content
 
 def main():
     decrypted_dir = "/Users/josephine001/.gemini/antigravity-ide/scratch/wxwork-reader/wxwork_decrypted_user"
+    if not os.path.exists(decrypted_dir):
+        decrypted_dir = "/Users/josephine001/.gemini/antigravity-ide/scratch/wxwork-reader/wxwork_decrypted"
+
     desktop_dir = os.path.expanduser("~/Desktop")
     out_folder = os.path.join(desktop_dir, "企业微信通讯录与联系人")
     os.makedirs(out_folder, exist_ok=True)
@@ -25,12 +30,14 @@ def main():
 
     # 1. 加载企业主体
     corps = {}
-    for row in conn_user.execute("SELECT * FROM CORPINFO").fetchall():
-        cid = row[0]
-        cname = "嘉立创集团"
-        corps[cid] = cname
+    try:
+        for row in conn_user.execute("SELECT * FROM CORPINFO").fetchall():
+            cid = row[0]
+            corps[cid] = "嘉立创集团"
+    except Exception:
+        pass
 
-    # 2. 加载所有用户与部门
+    # 2. 加载内部企业员工
     query = """
     SELECT RID, name, gender, email, mobile, phone, job, number, alias, fullpath, avatarurl, corpid
     FROM USER
@@ -38,7 +45,7 @@ def main():
     """
 
     user_rows = conn_sess.execute(query).fetchall()
-    print(f"[+] 从通讯录数据库中读取到 {len(user_rows)} 位联系人记录")
+    print(f"[+] 从内部用户表中读取到 {len(user_rows)} 位企业员工记录")
 
     contacts = []
     by_dept = defaultdict(list)
@@ -48,7 +55,6 @@ def main():
 
         gender_str = "男" if gender == 1 else ("女" if gender == 2 else "未知")
         dept_str = fullpath.strip() if fullpath else "其他 / 待分配部门"
-        # 规范化部门路径
         dept_clean = dept_str.replace(">>", " / ").replace(">", " / ")
 
         item = {
@@ -58,213 +64,361 @@ def main():
             "job": job or "",
             "department": dept_clean,
             "email": email or "",
-            "mobile": mobile or phone or "",
-            "work_id": number or "",
+            "mobile": mobile or "",
+            "phone": phone or "",
+            "employee_no": number or "",
             "alias": alias or "",
-            "avatar": avatarurl or "",
-            "corp": corps.get(corpid, "嘉立创集团"),
+            "corp_name": corps.get(corpid, "嘉立创集团"),
+            "avatar_url": avatarurl or "",
+            "type": "企业内部员工"
         }
         contacts.append(item)
         by_dept[dept_clean].append(item)
 
-    # 3. 导出 CSV 文件 (支持 Excel 直接双击打开 UTF-8-BOM)
-    csv_path = os.path.join(out_folder, "企业微信通讯录_3530位联系人全量表.csv")
-    csv_desktop = os.path.join(desktop_dir, "企业微信通讯录_3530位联系人全量表.csv")
+    # 3. 加载外部微信客户与外部联系人 (MultiSyncBusiness_8)
+    try:
+        ext_rows = conn_user.execute("SELECT KEY, serial_info FROM MultiSyncBusiness_8").fetchall()
+        ext_count = 0
+        for k, raw in ext_rows:
+            txt = decode_content(raw)
+            lines = [l.strip() for l in txt.splitlines() if l.strip()]
+            ext_name = ""
+            avatar = ""
+            ext_mobile = ""
+            for l in lines:
+                if l.startswith("http://wx.qlogo.cn") or l.startswith("https://wx.qlogo.cn") or l.startswith("https://wework.qpic.cn"):
+                    avatar = l
+                elif not ext_name and not l.startswith("ozynqs") and not l.startswith("orFrbs") and len(l) < 35:
+                    ext_name = l
+                m = re.search(r"1[3-9]\d{9}", l)
+                if m:
+                    ext_mobile = m.group(0)
 
-    fieldnames = ["姓名", "部门", "职位/头衔", "工作邮箱", "手机/电话", "工号/账号", "性别", "企业微信ID", "所属公司"]
-    for cp in (csv_path, csv_desktop):
-        with open(cp, "w", encoding="utf-8-sig", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
+            if ext_name:
+                ext_item = {
+                    "user_id": f"EXT_{k}",
+                    "name": ext_name,
+                    "gender": "未知",
+                    "job": "外部微信联系人",
+                    "department": "外部联系人 / 微信客户",
+                    "email": "",
+                    "mobile": ext_mobile,
+                    "phone": "",
+                    "employee_no": "",
+                    "alias": "",
+                    "corp_name": "微信外部客户",
+                    "avatar_url": avatar,
+                    "type": "外部联系人"
+                }
+                contacts.append(ext_item)
+                by_dept["外部联系人 / 微信客户"].append(ext_item)
+                ext_count += 1
+        print(f"[+] 从外部联系人表中读取到 {ext_count} 位微信客户记录")
+    except Exception as e:
+        print(f"[-] 读取外部联系人时跳过: {e}")
+
+    total_count = len(contacts)
+    print(f"[+] 通讯录汇总总计: {total_count} 位联系人")
+
+    # 4. 导出 CSV (带 UTF-8 BOM，Excel 双击完美打开)
+    csv_file = os.path.join(desktop_dir, f"企业微信通讯录_{total_count}位联系人全量表.csv")
+    csv_file_folder = os.path.join(out_folder, "企业微信通讯录_全量表.csv")
+
+    fieldnames = ["姓名", "职位/岗位", "所属部门", "工作邮箱", "手机号码", "办公电话", "工号", "别名/账号", "所属企业", "用户ID/企微ID", "联系人类型", "头像链接"]
+
+    for target_csv in [csv_file, csv_file_folder]:
+        with open(target_csv, "w", encoding="utf-8-sig", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(fieldnames)
             for c in contacts:
-                writer.writerow({
-                    "姓名": c["name"],
-                    "部门": c["department"],
-                    "职位/头衔": c["job"],
-                    "工作邮箱": c["email"],
-                    "手机/电话": c["mobile"],
-                    "工号/账号": c["work_id"] or c["alias"],
-                    "性别": c["gender"],
-                    "企业微信ID": str(c["user_id"]),
-                    "所属公司": c["corp"],
-                })
+                writer.writerow([
+                    c["name"],
+                    c["job"],
+                    c["department"],
+                    c["email"],
+                    c["mobile"],
+                    c["phone"],
+                    c["employee_no"],
+                    c["alias"],
+                    c["corp_name"],
+                    c["user_id"],
+                    c["type"],
+                    c["avatar_url"]
+                ])
 
-    # 4. 导出 JSON 文件
-    json_path = os.path.join(out_folder, "contacts.json")
-    with open(json_path, "w", encoding="utf-8") as f:
+    # 5. 导出 JSON
+    json_file = os.path.join(out_folder, "contacts.json")
+    with open(json_file, "w", encoding="utf-8") as f:
         json.dump(contacts, f, ensure_ascii=False, indent=2)
 
-    # 5. 导出 Markdown 汇总文档 (按部门分级呈现)
-    md_path = os.path.join(out_folder, "企业微信通讯录_部门与联系人一览.md")
-    md_desktop = os.path.join(desktop_dir, "企业微信通讯录_部门与联系人一览.md")
+    # 6. 导出 Markdown (按部门层级整理)
+    md_file = os.path.join(desktop_dir, "企业微信通讯录_部门与联系人一览.md")
+    md_file_folder = os.path.join(out_folder, "企业微信通讯录_部门与联系人一览.md")
 
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     md_lines = [
         "# 👥 嘉立创企业微信通讯录与组织架构一览",
         "",
-        f"> **导出时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  ",
-        "> **当前登录账号**: **邬广武** (WuGuangWu · 嘉立创 · 销售助理 · 18127715604)  ",
-        f"> **联系人总数**: **{len(contacts):,}** 位  ",
+        f"> **导出时间**: {now_str}  ",
+        f"> **当前登录账号**: **邬广武** (WuGuangWu · 嘉立创 · 销售助理 · 18127715604)  ",
+        f"> **联系人总数**: **{total_count:,}** 位 (含内部员工与外部微信客户)  ",
         f"> **一级/二级部门数**: **{len(by_dept)}** 个  ",
         "",
         "---",
         "",
         "## 📑 部门快速索引",
-        "",
+        ""
     ]
 
-    for dept, dept_users in sorted(by_dept.items(), key=lambda x: len(x[1]), reverse=True)[:25]:
-        md_lines.append(f"- **{dept}** ({len(dept_users)} 人)")
+    for dept in sorted(by_dept.keys()):
+        count = len(by_dept[dept])
+        md_lines.append(f"- **{dept}** ({count} 人)")
 
-    md_lines.append("")
-    md_lines.append("---")
-    md_lines.append("")
-    md_lines.append("## 📋 各部门联系人明细列表")
-    md_lines.append("")
+    md_lines.extend(["", "---", "", "## 📋 各部门联系人明细列表", ""])
 
-    for dept, dept_users in sorted(by_dept.items(), key=lambda x: len(x[1]), reverse=True):
-        md_lines.append(f"### 🏢 {dept} ({len(dept_users)} 人)")
-        md_lines.append("")
+    for dept in sorted(by_dept.keys()):
+        dept_contacts = by_dept[dept]
+        md_lines.append(f"### 🏢 {dept} ({len(dept_contacts)} 人)\n")
         md_lines.append("| 姓名 | 职位 / 岗位 | 工作邮箱 | 手机 / 联系方式 | 工号 / 别名 |")
         md_lines.append("| :--- | :--- | :--- | :--- | :--- |")
-        for u in dept_users:
-            email_cell = f"`{u['email']}`" if u['email'] else "-"
-            mobile_cell = f"`{u['mobile']}`" if u['mobile'] else "-"
-            job_cell = u['job'] or "-"
-            work_cell = u['work_id'] or u['alias'] or "-"
-            md_lines.append(f"| **{u['name']}** | {job_cell} | {email_cell} | {mobile_cell} | {work_cell} |")
+        for c in dept_contacts:
+            name_val = f"**{c['name']}**"
+            job_val = c['job'] or "-"
+            email_val = f"`{c['email']}`" if c['email'] else "-"
+            phone_val = f"`{c['mobile'] or c['phone']}`" if (c['mobile'] or c['phone']) else "-"
+            no_val = c['employee_no'] or c['alias'] or "-"
+            md_lines.append(f"| {name_val:<25} | {job_val:<20} | {email_val:<20} | {phone_val:<15} | {no_val:<15} |")
         md_lines.append("")
 
-    for mp in (md_path, md_desktop):
-        with open(mp, "w", encoding="utf-8") as f:
-            f.write("\n".join(md_lines))
+    md_content = "\n".join(md_lines)
+    for target_md in [md_file, md_file_folder]:
+        with open(target_md, "w", encoding="utf-8") as f:
+            f.write(md_content)
 
-    # 6. 生成交互式 HTML 可视化通讯录
-    html_path = os.path.join(out_folder, "index.html")
-    html_desktop = os.path.join(desktop_dir, "企业微信通讯录_可视化搜索面板.html")
+    # 7. 导出 HTML 可视化检索面板
+    html_file = os.path.join(desktop_dir, "企业微信通讯录_可视化搜索面板.html")
+    html_file_folder = os.path.join(out_folder, "index.html")
 
-    html_content = generate_contacts_html(contacts, by_dept)
-    for hp in (html_path, html_desktop):
-        with open(hp, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-    print(f"\n🎉 通讯录导出完成！")
-    print(f"   • CSV 全量表格 (Excel打开): {csv_desktop}")
-    print(f"   • Markdown 架构清单: {md_desktop}")
-    print(f"   • 网页可视化搜索面板: {html_desktop}")
-    print(f"   • 完整归档文件夹: {out_folder}")
-
-
-def generate_contacts_html(contacts, by_dept):
-    rows_html = []
-    for c in contacts:
-        avatar = c["avatar"] or "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
-        rows_html.append(f"""
-        <tr class="contact-row" data-name="{c['name'].lower()}" data-job="{c['job'].lower()}" data-dept="{c['department'].lower()}" data-email="{c['email'].lower()}" data-mobile="{c['mobile']}">
-            <td class="user-cell">
-                <img class="avatar" src="{avatar}" onerror="this.src='https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'">
-                <div>
-                    <div class="user-name">{c['name']}</div>
-                    <div class="user-id">ID: {c['user_id']}</div>
-                </div>
-            </td>
-            <td><span class="dept-badge">{c['department']}</span></td>
-            <td><strong>{c['job'] or '-'}</strong></td>
-            <td>{f"<a href='mailto:{c['email']}'>{c['email']}</a>" if c['email'] else '-'}</td>
-            <td>{c['mobile'] or '-'}</td>
-            <td>{c['work_id'] or c['alias'] or '-'}</td>
-            <td>{c['corp']}</td>
-        </tr>
-        """)
-
-    return f"""<!DOCTYPE html>
+    html_content = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>企业微信通讯录检索面板</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>嘉立创企业微信通讯录与组织架构检索面板 ({total_count:,}位联系人)</title>
 <style>
-* {{ box-sizing: border-box; }}
-body {{ margin: 0; background: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", Roboto, sans-serif; color: #1f2937; }}
-.header {{ background: #0052d9; color: #fff; padding: 22px 32px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,.15); }}
-.header h1 {{ margin: 0; font-size: 22px; }}
-.header p {{ margin: 6px 0 0; font-size: 13px; opacity: .9; }}
-.stats-bar {{ display: flex; gap: 16px; margin-top: 12px; }}
-.stat-pill {{ background: rgba(255,255,255,.18); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }}
-.container {{ max-width: 1400px; margin: 24px auto; padding: 0 20px; }}
-.search-bar {{ display: flex; gap: 12px; margin-bottom: 20px; }}
-.search-input {{ flex: 1; padding: 12px 18px; font-size: 15px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.05); }}
-.table-card {{ background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); border: 1px solid #e5e7eb; overflow: hidden; }}
-table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }}
-thead {{ background: #f8fafc; border-bottom: 2px solid #e2e8f0; }}
-th {{ padding: 12px 16px; font-weight: 600; color: #475569; }}
-td {{ padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }}
-tr:hover {{ background: #f8fafc; }}
-.user-cell {{ display: flex; align-items: center; gap: 12px; }}
-.avatar {{ width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e2e8f0; }}
-.user-name {{ font-weight: 700; color: #0f172a; font-size: 14px; }}
-.user-id {{ font-size: 11px; color: #94a3b8; }}
-.dept-badge {{ background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 12px; }}
-a {{ color: #0052d9; text-decoration: none; }}
-a:hover {{ text-decoration: underline; }}
-.result-count {{ font-size: 13px; color: #64748b; margin-bottom: 10px; }}
+  :root {{
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-border: #334155;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #38bdf8;
+    --accent: #818cf8;
+    --badge-bg: #0369a1;
+  }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    line-height: 1.5;
+  }}
+  .container {{ max-width: 1300px; margin: 0 auto; }}
+  header {{
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }}
+  h1 {{ font-size: 24px; color: var(--primary); display: flex; align-items: center; gap: 8px; }}
+  .stats-bar {{
+    display: flex;
+    gap: 16px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }}
+  .stat-badge {{
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    font-weight: bold;
+  }}
+  .search-box {{
+    margin-bottom: 20px;
+    position: sticky;
+    top: 12px;
+    z-index: 100;
+  }}
+  .search-input {{
+    width: 100%;
+    padding: 14px 20px;
+    background: #1e293b;
+    border: 2px solid #38bdf8;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    outline: none;
+  }}
+  .search-input:focus {{
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.4);
+  }}
+  .contacts-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+  }}
+  .contact-card {{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    transition: transform 0.15s, border-color 0.15s;
+  }}
+  .contact-card:hover {{
+    transform: translateY(-2px);
+    border-color: var(--primary);
+  }}
+  .avatar {{
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #334155;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--primary);
+    overflow: hidden;
+  }}
+  .avatar img {{ width: 100%; height: 100%; object-fit: cover; }}
+  .info {{ flex: 1; min-width: 0; }}
+  .name-row {{ display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }}
+  .name {{ font-size: 16px; font-weight: bold; color: #fff; }}
+  .job {{
+    font-size: 12px;
+    background: rgba(129, 140, 248, 0.15);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }}
+  .dept {{ font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }}
+  .meta-item {{ font-size: 12px; color: #cbd5e1; margin-top: 2px; word-break: break-all; }}
+  .meta-item span {{ color: var(--text-muted); }}
+  .empty-msg {{ text-align: center; padding: 40px; color: var(--text-muted); font-size: 16px; grid-column: 1 / -1; }}
 </style>
 </head>
 <body>
-<div class="header">
-    <h1>👥 嘉立创企业微信全量通讯录检索系统</h1>
-    <p>登录账号：邬广武（嘉立创 · 销售助理）</p>
-    <div class="stats-bar">
-        <div class="stat-pill">👥 通讯录总人数: {len(contacts):,} 人</div>
-        <div class="stat-pill">🏢 部门数: {len(by_dept)} 个</div>
-    </div>
-</div>
 <div class="container">
-    <div class="search-bar">
-        <input type="text" id="searchInput" class="search-input" placeholder="🔍 快速搜索联系人姓名、部门、职位、邮箱或手机号..." onkeyup="filterUsers()">
+  <header>
+    <div>
+      <h1>🏢 嘉立创企业微信通讯录检索面板</h1>
+      <div class="dept" style="margin-top: 4px;">登录账号：邬广武 (嘉立创 · 销售助理 · 18127715604)</div>
     </div>
-    <div class="result-count" id="resCount">正在显示全部 {len(contacts):,} 位联系人</div>
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>姓名 / 企微ID</th>
-                    <th>所属部门</th>
-                    <th>职位 / 岗位</th>
-                    <th>工作邮箱</th>
-                    <th>手机 / 电话</th>
-                    <th>工号 / 别名</th>
-                    <th>所属公司主体</th>
-                </tr>
-            </thead>
-            <tbody id="userTableBody">
-                {''.join(rows_html)}
-            </tbody>
-        </table>
+    <div class="stats-bar">
+      <div>总联系人: <span class="stat-badge">{total_count:,} 位</span></div>
+      <div>部门数: <span class="stat-badge">{len(by_dept)} 个</span></div>
     </div>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" class="search-input" placeholder="🔍 即时检索：输入姓名、职位(如:销售/BOM/跟单)、部门、邮箱或手机号..." autofocus>
+  </div>
+
+  <div id="contactsContainer" class="contacts-grid"></div>
 </div>
+
 <script>
-function filterUsers() {{
-    const val = document.getElementById('searchInput').value.toLowerCase().trim();
-    const rows = document.querySelectorAll('.contact-row');
-    let visible = 0;
-    rows.forEach(r => {{
-        const name = r.getAttribute('data-name');
-        const job = r.getAttribute('data-job');
-        const dept = r.getAttribute('data-dept');
-        const email = r.getAttribute('data-email');
-        const mobile = r.getAttribute('data-mobile');
-        if (!val || name.includes(val) || job.includes(val) || dept.includes(val) || email.includes(val) || mobile.includes(val)) {{
-            r.style.display = '';
-            visible++;
-        }} else {{
-            r.style.display = 'none';
-        }}
-    }});
-    document.getElementById('resCount').innerText = `已找到 ${{visible.toLocaleString()}} 位匹配联系人（共 ${{rows.length.toLocaleString()}} 人）`;
+const contacts = {json.dumps(contacts, ensure_ascii=False)};
+const container = document.getElementById('contactsContainer');
+const searchInput = document.getElementById('searchInput');
+
+function render(list) {{
+  if (list.length === 0) {{
+    container.innerHTML = '<div class="empty-msg">未找到匹配的联系人记录</div>';
+    return;
+  }}
+  const html = list.map(c => {{
+    const initial = c.name ? c.name.charAt(0) : 'U';
+    const avatarHtml = c.avatar_url ? `<img src="${{c.avatar_url}}" onerror="this.parentElement.innerHTML='${{initial}}'">` : initial;
+    const jobHtml = c.job ? `<span class="job">${{c.job}}</span>` : '';
+    const emailHtml = c.email ? `<div class="meta-item"><span>邮箱:</span> ${{c.email}}</div>` : '';
+    const phoneHtml = (c.mobile || c.phone) ? `<div class="meta-item"><span>电话:</span> ${{c.mobile || c.phone}}</div>` : '';
+    const noHtml = c.employee_no ? `<div class="meta-item"><span>工号:</span> ${{c.employee_no}}</div>` : '';
+    const typeBadge = c.type === '外部联系人' ? `<span style="font-size:11px;background:#059669;color:#fff;padding:1px 4px;border-radius:3px;">微信客户</span>` : '';
+
+    return `
+      <div class="contact-card">
+        <div class="avatar">${{avatarHtml}}</div>
+        <div class="info">
+          <div class="name-row">
+            <div class="name">${{c.name}}</div>
+            ${{jobHtml}}
+            ${{typeBadge}}
+          </div>
+          <div class="dept">${{c.department}}</div>
+          ${{emailHtml}}
+          ${{phoneHtml}}
+          ${{noHtml}}
+        </div>
+      </div>
+    `;
+  }}).join('');
+  container.innerHTML = html;
 }}
+
+render(contacts.slice(0, 120));
+
+let debounceTimer;
+searchInput.addEventListener('input', (e) => {{
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {{
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) {{
+      render(contacts.slice(0, 120));
+      return;
+    }}
+    const filtered = contacts.filter(c => 
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.job && c.job.toLowerCase().includes(q)) ||
+      (c.department && c.department.toLowerCase().includes(q)) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.mobile && c.mobile.includes(q)) ||
+      (c.phone && c.phone.includes(q)) ||
+      (c.employee_no && c.employee_no.toLowerCase().includes(q)) ||
+      (c.alias && c.alias.toLowerCase().includes(q))
+    );
+    render(filtered);
+  }}, 150);
+}});
 </script>
 </body>
-</html>"""
+</html>
+"""
+
+    for target_html in [html_file, html_file_folder]:
+        with open(target_html, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+    print(f"\n🎉 通讯录导出完成！")
+    print(f"   • CSV 全量表格 (Excel打开): {csv_file}")
+    print(f"   • Markdown 架构清单: {md_file}")
+    print(f"   • 网页可视化搜索面板: {html_file}")
+    print(f"   • 完整归档文件夹: {out_folder}\n")
 
 if __name__ == "__main__":
     main()
