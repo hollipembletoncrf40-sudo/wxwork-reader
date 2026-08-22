@@ -91,10 +91,27 @@ def main():
             "corp_name": "深圳市嘉立创科技集团",
             "avatar_url": "",
             "type": "企业内部员工"
+        },
+        {
+            "user_id": "1688857761606881_02",
+            "name": "何敏",
+            "gender": "女",
+            "job": "销售助理",
+            "department": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+            "email": "",
+            "mobile": "",
+            "phone": "",
+            "employee_no": "",
+            "alias": "",
+            "corp_name": "深圳市嘉立创科技集团",
+            "avatar_url": "",
+            "type": "企业内部员工"
         }
     ]
     for kc in known_colleagues:
-        if not any(c["name"] == kc["name"] or c["name"] == "叶诗雅" for c in contacts):
+        # Check if already present in that specific department
+        exists = any(c["name"] == kc["name"] and c.get("department") == kc["department"] for c in contacts)
+        if not exists:
             contacts.insert(0, kc)
             by_dept[kc["department"]].append(kc)
 
