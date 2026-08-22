@@ -75,7 +75,27 @@ def main():
         contacts.append(item)
         by_dept[dept_clean].append(item)
 
-    # 2.1 确保已知核心同事（如刚同步或直属组员）无遗漏收录
+    # 2.1 针对 SMT 项目组直属销售助理团队进行精确归组
+    smt_sales_assistants = {
+        "周敏": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+        "沈伟槟": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+        "陈瑞": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+        "管丹丹": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+        "江灿 Dorae - SMT": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+        "张莹 Clara SMT-邮件/在线": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+        "邬广武": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+    }
+    for c in contacts:
+        if c["name"] in smt_sales_assistants:
+            old_dept = c["department"]
+            new_dept = smt_sales_assistants[c["name"]]
+            if old_dept != new_dept:
+                if old_dept in by_dept and c in by_dept[old_dept]:
+                    by_dept[old_dept].remove(c)
+                c["department"] = new_dept
+                by_dept[new_dept].append(c)
+
+    # 2.2 确保已知核心同事（如刚同步或直属组员）无遗漏收录
     known_colleagues = [
         {
             "user_id": "1688857761606881_01",
@@ -109,7 +129,6 @@ def main():
         }
     ]
     for kc in known_colleagues:
-        # Check if already present in that specific department
         exists = any(c["name"] == kc["name"] and c.get("department") == kc["department"] for c in contacts)
         if not exists:
             contacts.insert(0, kc)
