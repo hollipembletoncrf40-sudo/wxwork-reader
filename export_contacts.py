@@ -75,64 +75,146 @@ def main():
         contacts.append(item)
         by_dept[dept_clean].append(item)
 
-    # 2.1 针对 SMT 项目组直属销售助理团队进行精确归组
-    smt_sales_assistants = {
-        "周敏": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-        "沈伟槟": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-        "陈瑞": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-        "管丹丹": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-        "江灿 Dorae - SMT": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-        "张莹 Clara SMT-邮件/在线": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-        "邬广武": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-    }
+    # 2.1 针对 SMT 项目组与 CNC 项目组全体成员进行 100% 精确归组映射 (依据企业微信官方组织架构树)
+    smt_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组"
+    cnc_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / CNC项目组"
+
+    smt_members_patterns = [
+        "冯玉碟", "贺亚东", "龙钰", "曾小妹", "朱懿", "姜丽", "郭兰芳", "卢志粤",
+        "叶舒淇", "魏运添", "彭龙", "韦小燕", "李嘉衡", "付彩玉", "罗雪薇", "陈紫欣",
+        "黄骎菁", "张莹", "江灿", "刘芳君", "邓仰林", "冯龙", "杜博琳", "芦莹",
+        "张文佩", "张金燕", "李渊", "高子聪", "叶明鑫", "周敏", "管丹丹", "邬广武",
+        "沈伟槟", "邢小妹", "李思敏", "张清", "徐晓莹", "叶诗雅", "何敏"
+    ]
+
+    cnc_members_patterns = [
+        "覃凤娇", "赵伊莎", "赵靖棉", "吕诗影", "代传昊", "符汝岩", "蒋燕林", "柯望",
+        "陈诗英", "王洁颖", "麦柔莹", "李洁", "王蔚"
+    ]
+
     for c in contacts:
-        if c["name"] in smt_sales_assistants:
-            old_dept = c["department"]
-            new_dept = smt_sales_assistants[c["name"]]
-            if old_dept != new_dept:
+        # SMT 组匹配
+        if any(pat in c["name"] for pat in smt_members_patterns):
+            if c["department"] != smt_team_dept and c["name"] not in ["何敏 (韶关)", "何敏_韶关"]:
+                # 如果是何敏但主体是韶关工厂的保留，同名销售助理归到 SMT 组
+                if c["name"] == "何敏" and c.get("corp_name") == "韶关市嘉立创电子科技有限公司":
+                    continue
+                old_dept = c["department"]
                 if old_dept in by_dept and c in by_dept[old_dept]:
                     by_dept[old_dept].remove(c)
-                c["department"] = new_dept
-                by_dept[new_dept].append(c)
+                c["department"] = smt_team_dept
+                by_dept[smt_team_dept].append(c)
 
-    # 2.2 确保已知核心同事（如刚同步或直属组员）无遗漏收录
-    known_colleagues = [
-        {
-            "user_id": "1688857761606881_01",
-            "name": "叶诗雅 Sabrina",
-            "gender": "女",
-            "job": "销售助理",
-            "department": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-            "email": "",
-            "mobile": "",
-            "phone": "",
-            "employee_no": "",
-            "alias": "Sabrina",
-            "corp_name": "深圳市嘉立创科技集团",
-            "avatar_url": "",
-            "type": "企业内部员工"
-        },
-        {
-            "user_id": "1688857761606881_02",
-            "name": "何敏",
-            "gender": "女",
-            "job": "销售助理",
-            "department": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
-            "email": "",
-            "mobile": "",
-            "phone": "",
-            "employee_no": "",
-            "alias": "",
-            "corp_name": "深圳市嘉立创科技集团",
-            "avatar_url": "",
-            "type": "企业内部员工"
-        }
+        # CNC 组匹配
+        elif any(pat in c["name"] for pat in cnc_members_patterns):
+            old_dept = c["department"]
+            if old_dept in by_dept and c in by_dept[old_dept]:
+                by_dept[old_dept].remove(c)
+            c["department"] = cnc_team_dept
+            by_dept[cnc_team_dept].append(c)
+
+    # 2.2 补齐截图中存在但在离线库未缓存的组员（严格按中文名去重）
+    full_smt_roster = [
+        {"name": "冯玉碟 Rachel-SMT销售-JSR", "job": "销售工程师", "alias": "Rachel"},
+        {"name": "贺亚东-Lucas-SMT销售-JSLH", "job": "销售工程师", "alias": "Lucas"},
+        {"name": "龙钰 Lorraine", "job": "销售工程师", "alias": "Lorraine"},
+        {"name": "曾小妹 Rebecca-SMT销售-JSRZ", "job": "销售工程师", "alias": "Rebecca"},
+        {"name": "朱懿 Sinclair-SMT销售-JSS", "job": "销售工程师", "alias": "Sinclair"},
+        {"name": "姜丽 Jamila-SMT跟单 售后/培训/AI", "job": "跟单专员", "alias": "Jamila"},
+        {"name": "郭兰芳 Claire 早班—SMT跟单-个性化 在线/邮件", "job": "跟单专员", "alias": "Claire"},
+        {"name": "卢志粤 Carl-SMT销售-JSCL", "job": "销售工程师", "alias": "Carl"},
+        {"name": "叶舒淇 Suki-SMT销售-JSSY", "job": "销售工程师", "alias": "Suki"},
+        {"name": "魏运添 Ethan", "job": "销售工程师", "alias": "Ethan"},
+        {"name": "彭龙 Paul", "job": "销售工程师", "alias": "Paul"},
+        {"name": "韦小燕 Sharon", "job": "销售工程师", "alias": "Sharon"},
+        {"name": "李嘉衡", "job": "销售助理", "alias": ""},
+        {"name": "付彩玉 Ella", "job": "销售助理", "alias": "Ella"},
+        {"name": "罗雪薇 Vayne-SMT-JSVL", "job": "销售工程师", "alias": "Vayne"},
+        {"name": "陈紫欣 Christine", "job": "跟单专员", "alias": "Christine"},
+        {"name": "黄骎菁 Shannon", "job": "销售助理", "alias": "Shannon"},
+        {"name": "张莹 Clara SMT-邮件/在线", "job": "销售助理", "alias": "Clara"},
+        {"name": "江灿 Dorae - SMT", "job": "销售助理", "alias": "Dorae"},
+        {"name": "刘芳君", "job": "销售助理", "alias": ""},
+        {"name": "邓仰林", "job": "项目销售主管助理", "alias": ""},
+        {"name": "冯龙 (Leander)", "job": "国际部SMT项目部主管", "alias": "Leander", "email": "fenglong@szjlc.wecom.work"},
+        {"name": "杜博琳", "job": "销售助理", "alias": ""},
+        {"name": "芦莹", "job": "销售助理", "alias": ""},
+        {"name": "张文佩 Ava", "job": "销售助理", "alias": "Ava"},
+        {"name": "张金燕 Yana", "job": "销售助理", "alias": "Yana"},
+        {"name": "李渊", "job": "销售助理", "alias": ""},
+        {"name": "高子聪", "job": "销售助理", "alias": ""},
+        {"name": "叶明鑫 Mason", "job": "销售助理", "alias": "Mason"},
+        {"name": "周敏", "job": "销售助理", "alias": ""},
+        {"name": "管丹丹", "job": "销售助理", "alias": ""},
+        {"name": "邬广武", "job": "销售助理", "alias": "WuGuangWu", "mobile": "18127715604"},
+        {"name": "沈伟槟", "job": "销售助理", "alias": ""},
+        {"name": "邢小妹 Gemma", "job": "销售助理", "alias": "Gemma"},
+        {"name": "李思敏-Simin L", "job": "销售助理", "alias": "Simin"},
+        {"name": "张清 (Aurelia)", "job": "销售助理", "alias": "Aurelia"},
+        {"name": "徐晓莹 (Bella)", "job": "销售助理", "alias": "Bella"},
+        {"name": "叶诗雅 Sabrina", "job": "销售助理", "alias": "Sabrina"},
+        {"name": "何敏", "job": "销售助理", "alias": ""}
     ]
-    for kc in known_colleagues:
-        exists = any(c["name"] == kc["name"] and c.get("department") == kc["department"] for c in contacts)
+
+    for item in full_smt_roster:
+        base_name = re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", item["name"])
+        exists = any(base_name and base_name in re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", c["name"]) and c["department"] == smt_team_dept for c in contacts)
         if not exists:
-            contacts.insert(0, kc)
-            by_dept[kc["department"]].append(kc)
+            new_c = {
+                "user_id": f"SMT_{len(contacts)+1}",
+                "name": item["name"],
+                "gender": "未知",
+                "job": item["job"],
+                "department": smt_team_dept,
+                "email": item.get("email", ""),
+                "mobile": item.get("mobile", ""),
+                "phone": "",
+                "employee_no": "",
+                "alias": item["alias"],
+                "corp_name": "深圳市嘉立创科技集团",
+                "avatar_url": "",
+                "type": "企业内部员工"
+            }
+            contacts.insert(0, new_c)
+            by_dept[smt_team_dept].append(new_c)
+
+    full_cnc_roster = [
+        {"name": "覃凤娇 Quincy", "job": "销售工程师", "alias": "Quincy"},
+        {"name": "赵伊莎 Essie-CNC销售-JCE", "job": "销售工程师", "alias": "Essie"},
+        {"name": "赵靖棉 Jasmine", "job": "销售工程师", "alias": "Jasmine"},
+        {"name": "吕诗影 Gina- CNC销售-JCG", "job": "跟单专员", "alias": "Gina"},
+        {"name": "代传昊-CNC/钣金海外技术支持", "job": "海外技术支持", "alias": ""},
+        {"name": "符汝岩 Roy-CNC钣金", "job": "项目销售主管", "alias": "Roy", "email": "guojibufuruyan@szjlc.wecom.work"},
+        {"name": "蒋燕林 Jolin-CNC", "job": "销售助理", "alias": "Jolin"},
+        {"name": "柯望 Cora-CNC", "job": "销售助理", "alias": "Cora"},
+        {"name": "陈诗英 Ying", "job": "销售助理", "alias": "Ying"},
+        {"name": "王洁颖 Janine", "job": "销售助理", "alias": "Janine", "email": "janinewong888@outlook.com"},
+        {"name": "麦柔莹 Maryin", "job": "销售助理", "alias": "Maryin"},
+        {"name": "李洁 Nora", "job": "跟单外协", "alias": "Nora"},
+        {"name": "王蔚 Hardy", "job": "销售助理", "alias": "Hardy"}
+    ]
+
+    for item in full_cnc_roster:
+        base_name = re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", item["name"])
+        exists = any(base_name and base_name in re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", c["name"]) and c["department"] == cnc_team_dept for c in contacts)
+        if not exists:
+            new_c = {
+                "user_id": f"CNC_{len(contacts)+1}",
+                "name": item["name"],
+                "gender": "未知",
+                "job": item["job"],
+                "department": cnc_team_dept,
+                "email": item.get("email", ""),
+                "mobile": "",
+                "phone": "",
+                "employee_no": "",
+                "alias": item["alias"],
+                "corp_name": "深圳市嘉立创科技集团",
+                "avatar_url": "",
+                "type": "企业内部员工"
+            }
+            contacts.insert(0, new_c)
+            by_dept[cnc_team_dept].append(new_c)
 
     # 3. 加载外部微信客户与外部联系人 (MultiSyncBusiness_8)
     try:
