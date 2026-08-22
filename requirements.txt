@@ -1,0 +1,3 @@
+# WXWork Reader dependencies
+# Core functionality uses Python 3.8+ standard libraries (sqlite3, ctypes, struct, json, csv)
+# No heavy third-party dependencies required.
