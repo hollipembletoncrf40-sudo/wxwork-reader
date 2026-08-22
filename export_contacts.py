@@ -82,7 +82,10 @@ def main():
     cnc_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / CNC项目组"
     pcb_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / PCB项目组"
     d3_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / 3D项目组"
+    fa_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / FA项目组"
     eda_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / EDA与Layout项目组"
+    stencil_team_dept = "嘉立创 / 国际事业部 / 项目销售部 / 钢网项目组"
+    logistics_dept = "嘉立创 / 国际事业部 / 物流部"
     corp_biz_dept = "嘉立创 / 集团商务管理团队"
 
     # 部门归属模式表
@@ -93,12 +96,18 @@ def main():
         (["陈世周", "黎睿冰"], intl_div_dept),
         # 项目销售部直属
         (["王逸维"], proj_sales_dept),
-        # PCB 项目组
-        (["肖俊", "何望阳", "陈婧咏", "郭海波", "陈澄锋", "韦忠达", "何芳柔"], pcb_team_dept),
         # 3D 项目组
-        (["张强（Ronen)", "潘迪生"], d3_team_dept),
+        (["陈莉华", "陈熙", "池忠涛", "劳艺杰", "马玉枭", "苏玉仪", "王新蕊", "袁泽铭", "张强（Ronen)", "张强 (Ronen)", "张雨婷", "钟坤梅", "李倩钰", "潘迪生"], d3_team_dept),
+        # PCB 项目组
+        (["陈澄锋", "陈婧咏", "郭海波", "何芳柔", "何望阳", "沈万鑫", "韦忠达", "吴奇", "张倩", "李婷", "肖俊", "郭小林", "杨婉婷", "张彩琳", "陈小娇", "刘骏飞", "施如画", "贺永丽", "贺鹏", "王欣冉", "林土珍", "林静雯", "董蔓", "潘雨", "易丽丽", "蓝昕悦", "高方跃"], pcb_team_dept),
+        # FA 项目组
+        (["陈聪", "Colton", "梁媛怡", "杨慧", "王曼菲", "Miya"], fa_team_dept),
         # EDA 与 Layout
-        (["刘传涛"], eda_team_dept),
+        (["蔡知霖", "陈海琪", "何立元", "邓馨怡", "EasyEDA", "刘传涛"], eda_team_dept),
+        # 钢网项目组
+        (["方莹", "钟仕婷"], stencil_team_dept),
+        # 物流部
+        (["叶俊燊", "侯郁柔", "谢政阳", "袁旭阳", "丁艳平"], logistics_dept),
         # CNC 项目组
         (["覃凤娇", "赵伊莎", "赵靖棉", "吕诗影", "代传昊", "符汝岩", "蒋燕林", "柯望", "陈诗英", "王洁颖", "麦柔莹", "李洁", "王蔚"], cnc_team_dept),
         # SMT 项目组
@@ -119,107 +128,161 @@ def main():
                 break
 
     # 2.2 补齐截图中存在但在离线库未缓存的组员（严格按中文名去重）
-    full_smt_roster = [
-        {"name": "冯玉碟 Rachel-SMT销售-JSR", "job": "销售工程师", "alias": "Rachel"},
-        {"name": "贺亚东-Lucas-SMT销售-JSLH", "job": "销售工程师", "alias": "Lucas"},
-        {"name": "龙钰 Lorraine", "job": "销售工程师", "alias": "Lorraine"},
-        {"name": "曾小妹 Rebecca-SMT销售-JSRZ", "job": "销售工程师", "alias": "Rebecca"},
-        {"name": "朱懿 Sinclair-SMT销售-JSS", "job": "销售工程师", "alias": "Sinclair"},
-        {"name": "姜丽 Jamila-SMT跟单 售后/培训/AI", "job": "跟单专员", "alias": "Jamila"},
-        {"name": "郭兰芳 Claire 早班—SMT跟单-个性化 在线/邮件", "job": "跟单专员", "alias": "Claire"},
-        {"name": "卢志粤 Carl-SMT销售-JSCL", "job": "销售工程师", "alias": "Carl"},
-        {"name": "叶舒淇 Suki-SMT销售-JSSY", "job": "销售工程师", "alias": "Suki"},
-        {"name": "魏运添 Ethan", "job": "销售工程师", "alias": "Ethan"},
-        {"name": "彭龙 Paul", "job": "销售工程师", "alias": "Paul"},
-        {"name": "韦小燕 Sharon", "job": "销售工程师", "alias": "Sharon"},
-        {"name": "李嘉衡", "job": "销售助理", "alias": ""},
-        {"name": "付彩玉 Ella", "job": "销售助理", "alias": "Ella"},
-        {"name": "罗雪薇 Vayne-SMT-JSVL", "job": "销售工程师", "alias": "Vayne"},
-        {"name": "陈紫欣 Christine", "job": "跟单专员", "alias": "Christine"},
-        {"name": "黄骎菁 Shannon", "job": "销售助理", "alias": "Shannon"},
-        {"name": "张莹 Clara SMT-邮件/在线", "job": "销售助理", "alias": "Clara"},
-        {"name": "江灿 Dorae - SMT", "job": "销售助理", "alias": "Dorae"},
-        {"name": "刘芳君", "job": "销售助理", "alias": ""},
-        {"name": "邓仰林", "job": "项目销售主管助理", "alias": ""},
-        {"name": "冯龙 (Leander)", "job": "国际部SMT项目部主管", "alias": "Leander", "email": "fenglong@szjlc.wecom.work"},
-        {"name": "杜博琳", "job": "销售助理", "alias": ""},
-        {"name": "芦莹", "job": "销售助理", "alias": ""},
-        {"name": "张文佩 Ava", "job": "销售助理", "alias": "Ava"},
-        {"name": "张金燕 Yana", "job": "销售助理", "alias": "Yana"},
-        {"name": "李渊", "job": "销售助理", "alias": ""},
-        {"name": "高子聪", "job": "销售助理", "alias": ""},
-        {"name": "叶明鑫 Mason", "job": "销售助理", "alias": "Mason"},
-        {"name": "周敏", "job": "销售助理", "alias": ""},
-        {"name": "管丹丹", "job": "销售助理", "alias": ""},
-        {"name": "邬广武", "job": "销售助理", "alias": "WuGuangWu", "mobile": "18127715604"},
-        {"name": "沈伟槟", "job": "销售助理", "alias": ""},
-        {"name": "邢小妹 Gemma", "job": "销售助理", "alias": "Gemma"},
-        {"name": "李思敏-Simin L", "job": "销售助理", "alias": "Simin"},
-        {"name": "张清 (Aurelia)", "job": "销售助理", "alias": "Aurelia"},
-        {"name": "徐晓莹 (Bella)", "job": "销售助理", "alias": "Bella"},
-        {"name": "叶诗雅 Sabrina", "job": "销售助理", "alias": "Sabrina"},
-        {"name": "何敏", "job": "销售助理", "alias": ""}
+    full_rosters = [
+        # SMT
+        (smt_team_dept, [
+            {"name": "冯玉碟 Rachel-SMT销售-JSR", "job": "销售工程师", "alias": "Rachel"},
+            {"name": "贺亚东-Lucas-SMT销售-JSLH", "job": "销售工程师", "alias": "Lucas"},
+            {"name": "龙钰 Lorraine", "job": "销售工程师", "alias": "Lorraine"},
+            {"name": "曾小妹 Rebecca-SMT销售-JSRZ", "job": "销售工程师", "alias": "Rebecca"},
+            {"name": "朱懿 Sinclair-SMT销售-JSS", "job": "销售工程师", "alias": "Sinclair"},
+            {"name": "姜丽 Jamila-SMT跟单 售后/培训/AI", "job": "跟单专员", "alias": "Jamila"},
+            {"name": "郭兰芳 Claire 早班—SMT跟单-个性化 在线/邮件", "job": "跟单专员", "alias": "Claire"},
+            {"name": "卢志粤 Carl-SMT销售-JSCL", "job": "销售工程师", "alias": "Carl"},
+            {"name": "叶舒淇 Suki-SMT销售-JSSY", "job": "销售工程师", "alias": "Suki"},
+            {"name": "魏运添 Ethan", "job": "销售工程师", "alias": "Ethan"},
+            {"name": "彭龙 Paul", "job": "销售工程师", "alias": "Paul"},
+            {"name": "韦小燕 Sharon", "job": "销售工程师", "alias": "Sharon"},
+            {"name": "李嘉衡", "job": "销售助理", "alias": ""},
+            {"name": "付彩玉 Ella", "job": "销售助理", "alias": "Ella"},
+            {"name": "罗雪薇 Vayne-SMT-JSVL", "job": "销售工程师", "alias": "Vayne"},
+            {"name": "陈紫欣 Christine", "job": "跟单专员", "alias": "Christine"},
+            {"name": "黄骎菁 Shannon", "job": "销售助理", "alias": "Shannon"},
+            {"name": "张莹 Clara SMT-邮件/在线", "job": "销售助理", "alias": "Clara"},
+            {"name": "江灿 Dorae - SMT", "job": "销售助理", "alias": "Dorae"},
+            {"name": "刘芳君", "job": "销售助理", "alias": ""},
+            {"name": "邓仰林", "job": "项目销售主管助理", "alias": ""},
+            {"name": "冯龙 (Leander)", "job": "国际部SMT项目部主管", "alias": "Leander", "email": "fenglong@szjlc.wecom.work"},
+            {"name": "杜博琳", "job": "销售助理", "alias": ""},
+            {"name": "芦莹", "job": "销售助理", "alias": ""},
+            {"name": "张文佩 Ava", "job": "销售助理", "alias": "Ava"},
+            {"name": "张金燕 Yana", "job": "销售助理", "alias": "Yana"},
+            {"name": "李渊", "job": "销售助理", "alias": ""},
+            {"name": "高子聪", "job": "销售助理", "alias": ""},
+            {"name": "叶明鑫 Mason", "job": "销售助理", "alias": "Mason"},
+            {"name": "周敏", "job": "销售助理", "alias": ""},
+            {"name": "管丹丹", "job": "销售助理", "alias": ""},
+            {"name": "邬广武", "job": "销售助理", "alias": "WuGuangWu", "mobile": "18127715604"},
+            {"name": "沈伟槟", "job": "销售助理", "alias": ""},
+            {"name": "邢小妹 Gemma", "job": "销售助理", "alias": "Gemma"},
+            {"name": "李思敏-Simin L", "job": "销售助理", "alias": "Simin"},
+            {"name": "张清 (Aurelia)", "job": "销售助理", "alias": "Aurelia"},
+            {"name": "徐晓莹 (Bella)", "job": "销售助理", "alias": "Bella"},
+            {"name": "叶诗雅 Sabrina", "job": "销售助理", "alias": "Sabrina"},
+            {"name": "何敏", "job": "销售助理", "alias": ""}
+        ]),
+        # CNC
+        (cnc_team_dept, [
+            {"name": "覃凤娇 Quincy", "job": "销售工程师", "alias": "Quincy"},
+            {"name": "赵伊莎 Essie-CNC销售-JCE", "job": "销售工程师", "alias": "Essie"},
+            {"name": "赵靖棉 Jasmine", "job": "销售工程师", "alias": "Jasmine"},
+            {"name": "吕诗影 Gina- CNC销售-JCG", "job": "跟单专员", "alias": "Gina"},
+            {"name": "代传昊-CNC/钣金海外技术支持", "job": "海外技术支持", "alias": ""},
+            {"name": "符汝岩 Roy-CNC钣金", "job": "项目销售主管", "alias": "Roy", "email": "guojibufuruyan@szjlc.wecom.work"},
+            {"name": "蒋燕林 Jolin-CNC", "job": "销售助理", "alias": "Jolin"},
+            {"name": "柯望 Cora-CNC", "job": "销售助理", "alias": "Cora"},
+            {"name": "陈诗英 Ying", "job": "销售助理", "alias": "Ying"},
+            {"name": "王洁颖 Janine", "job": "销售助理", "alias": "Janine", "email": "janinewong888@outlook.com"},
+            {"name": "麦柔莹 Maryin", "job": "销售助理", "alias": "Maryin"},
+            {"name": "李洁 Nora", "job": "跟单外协", "alias": "Nora"},
+            {"name": "王蔚 Hardy", "job": "销售助理", "alias": "Hardy"}
+        ]),
+        # 3D
+        (d3_team_dept, [
+            {"name": "陈莉华 Eliza", "job": "销售助理", "alias": "Eliza"},
+            {"name": "陈熙 Elven-3D 销售-J3DE", "job": "销售工程师", "alias": "Elven"},
+            {"name": "池忠涛 Julia -3D 销售-J3DJ", "job": "销售工程师", "alias": "Julia"},
+            {"name": "劳艺杰 Laura", "job": "销售助理", "alias": "Laura"},
+            {"name": "马玉枭", "job": "销售助理", "alias": ""},
+            {"name": "苏玉仪 Lesley-3D 销售-J3DL", "job": "销售工程师", "alias": "Lesley"},
+            {"name": "王新蕊 Rayne", "job": "销售助理", "alias": "Rayne"},
+            {"name": "袁泽铭 Frank-3D 销售-J3DF", "job": "销售工程师", "alias": "Frank"},
+            {"name": "张强 (Ronen) -3D", "job": "项目销售主管", "alias": "Ronen"},
+            {"name": "张雨婷 Marina-3D 销售-J3DM", "job": "销售工程师", "alias": "Marina"},
+            {"name": "钟坤梅 Kimie-3D 跟单-售后/邮件", "job": "跟单专员", "alias": "Kimie"},
+            {"name": "李倩钰-Cherie", "job": "销售助理", "alias": "Cherie"}
+        ]),
+        # PCB
+        (pcb_team_dept, [
+            {"name": "陈澄锋 Claus - PCB 销售- JPC", "job": "销售工程师", "alias": "Claus"},
+            {"name": "陈婧咏 Joann - PCB 销售- JPJ", "job": "销售工程师", "alias": "Joann"},
+            {"name": "郭海波 Myles - PCB 销售- JPM", "job": "销售工程师", "alias": "Myles"},
+            {"name": "何芳柔 Rosie - PCB 销售 - JPR", "job": "销售工程师", "alias": "Rosie"},
+            {"name": "何望阳 Eric - PCB 销售 - JPE", "job": "销售工程师", "alias": "Eric"},
+            {"name": "沈万鑫 Reiter-PCB", "job": "销售工程师", "alias": "Reiter"},
+            {"name": "韦忠达-Wick-PCB 跟单 -在线/邮件", "job": "跟单专员", "alias": "Wick"},
+            {"name": "吴奇 Troy - PCB 销售- JPT", "job": "销售工程师", "alias": "Troy"},
+            {"name": "张倩 Ines-PCB 跟单-售后/AI", "job": "跟单专员", "alias": "Ines"},
+            {"name": "李婷 Yvette - PCB 销售 - JPY", "job": "销售工程师", "alias": "Yvette"},
+            {"name": "肖俊 Jonas-PCB", "job": "项目销售主管助理", "alias": "Jonas"},
+            {"name": "郭小林 Ryan-PCB 跟单-在线/邮件", "job": "跟单专员", "alias": "Ryan"},
+            {"name": "杨婉婷 Winnie", "job": "销售助理", "alias": "Winnie"},
+            {"name": "张彩琳 Mila-PCB 销售-JPMI", "job": "销售工程师", "alias": "Mila"},
+            {"name": "陈小娇 Lizz-PCB 销售-JPL", "job": "销售工程师", "alias": "Lizz"},
+            {"name": "刘骏飞 Jaffrey Lor", "job": "销售助理", "alias": "Jaffrey"},
+            {"name": "施如画 Carrie-PCB", "job": "销售工程师", "alias": "Carrie"},
+            {"name": "贺永丽 lily-PCB", "job": "销售助理", "alias": "lily"},
+            {"name": "贺鹏 Patrick-PCB", "job": "销售工程师", "alias": "Patrick"},
+            {"name": "王欣冉 Stella", "job": "销售助理", "alias": "Stella"},
+            {"name": "林土珍", "job": "销售助理", "alias": ""},
+            {"name": "林静雯", "job": "销售助理", "alias": ""},
+            {"name": "董蔓 Sookie", "job": "销售助理", "alias": "Sookie"},
+            {"name": "潘雨", "job": "销售助理", "alias": ""},
+            {"name": "易丽丽 Katie", "job": "销售助理", "alias": "Katie"},
+            {"name": "蓝昕悦 Mory", "job": "销售助理", "alias": "Mory"},
+            {"name": "高方跃 (Owen)", "job": "销售助理", "alias": "Owen"}
+        ]),
+        # FA
+        (fa_team_dept, [
+            {"name": "Colton-陈聪", "job": "销售助理", "alias": "Colton"},
+            {"name": "梁媛怡 Eileen", "job": "销售助理", "alias": "Eileen"},
+            {"name": "杨慧", "job": "销售助理", "alias": ""},
+            {"name": "Miya-王曼菲", "job": "销售助理", "alias": "Miya"}
+        ]),
+        # EDA 与 Layout
+        (eda_team_dept, [
+            {"name": "EasyEDA技术支持：蔡知霖 (David cai)", "job": "EDA技术支持", "alias": "David"},
+            {"name": "EasyEDA技术支持：陈海琪 (Haidy chen)", "job": "EDA技术支持", "alias": "Haidy"},
+            {"name": "何立元 Lyle", "job": "销售助理", "alias": "Lyle"},
+            {"name": "邓馨怡 Estella", "job": "销售助理", "alias": "Estella"}
+        ]),
+        # 钢网
+        (stencil_team_dept, [
+            {"name": "方莹 Sophia 8.19-8.23休假", "job": "销售助理", "alias": "Sophia"},
+            {"name": "钟仕婷 Christine", "job": "销售助理", "alias": "Christine"}
+        ]),
+        # 物流部
+        (logistics_dept, [
+            {"name": "叶俊燊", "job": "国际物流专员", "alias": ""},
+            {"name": "侯郁柔", "job": "国际物流专员", "alias": ""},
+            {"name": "谢政阳", "job": "国际物流专员", "alias": ""},
+            {"name": "袁旭阳", "job": "国际物流专员", "alias": ""},
+            {"name": "丁艳平", "job": "国际物流专员", "alias": ""}
+        ])
     ]
 
-    for item in full_smt_roster:
-        base_name = re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", item["name"])
-        exists = any(base_name and base_name in re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", c["name"]) and c["department"] == smt_team_dept for c in contacts)
-        if not exists:
-            new_c = {
-                "user_id": f"SMT_{len(contacts)+1}",
-                "name": item["name"],
-                "gender": "未知",
-                "job": item["job"],
-                "department": smt_team_dept,
-                "email": item.get("email", ""),
-                "mobile": item.get("mobile", ""),
-                "phone": "",
-                "employee_no": "",
-                "alias": item["alias"],
-                "corp_name": "深圳市嘉立创科技集团",
-                "avatar_url": "",
-                "type": "企业内部员工"
-            }
-            contacts.insert(0, new_c)
-            by_dept[smt_team_dept].append(new_c)
-
-    full_cnc_roster = [
-        {"name": "覃凤娇 Quincy", "job": "销售工程师", "alias": "Quincy"},
-        {"name": "赵伊莎 Essie-CNC销售-JCE", "job": "销售工程师", "alias": "Essie"},
-        {"name": "赵靖棉 Jasmine", "job": "销售工程师", "alias": "Jasmine"},
-        {"name": "吕诗影 Gina- CNC销售-JCG", "job": "跟单专员", "alias": "Gina"},
-        {"name": "代传昊-CNC/钣金海外技术支持", "job": "海外技术支持", "alias": ""},
-        {"name": "符汝岩 Roy-CNC钣金", "job": "项目销售主管", "alias": "Roy", "email": "guojibufuruyan@szjlc.wecom.work"},
-        {"name": "蒋燕林 Jolin-CNC", "job": "销售助理", "alias": "Jolin"},
-        {"name": "柯望 Cora-CNC", "job": "销售助理", "alias": "Cora"},
-        {"name": "陈诗英 Ying", "job": "销售助理", "alias": "Ying"},
-        {"name": "王洁颖 Janine", "job": "销售助理", "alias": "Janine", "email": "janinewong888@outlook.com"},
-        {"name": "麦柔莹 Maryin", "job": "销售助理", "alias": "Maryin"},
-        {"name": "李洁 Nora", "job": "跟单外协", "alias": "Nora"},
-        {"name": "王蔚 Hardy", "job": "销售助理", "alias": "Hardy"}
-    ]
-
-    for item in full_cnc_roster:
-        base_name = re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", item["name"])
-        exists = any(base_name and base_name in re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/]+", "", c["name"]) and c["department"] == cnc_team_dept for c in contacts)
-        if not exists:
-            new_c = {
-                "user_id": f"CNC_{len(contacts)+1}",
-                "name": item["name"],
-                "gender": "未知",
-                "job": item["job"],
-                "department": cnc_team_dept,
-                "email": item.get("email", ""),
-                "mobile": "",
-                "phone": "",
-                "employee_no": "",
-                "alias": item["alias"],
-                "corp_name": "深圳市嘉立创科技集团",
-                "avatar_url": "",
-                "type": "企业内部员工"
-            }
-            contacts.insert(0, new_c)
-            by_dept[cnc_team_dept].append(new_c)
+    for target_dept, members in full_rosters:
+        for item in members:
+            base_name = re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/:：]+", "", item["name"])
+            exists = any(base_name and base_name in re.sub(r"[a-zA-Z0-9\s\-_（）\(\)/:：]+", "", c["name"]) and c["department"] == target_dept for c in contacts)
+            if not exists:
+                new_c = {
+                    "user_id": f"EXT_{len(contacts)+1}",
+                    "name": item["name"],
+                    "gender": "未知",
+                    "job": item["job"],
+                    "department": target_dept,
+                    "email": item.get("email", ""),
+                    "mobile": item.get("mobile", ""),
+                    "phone": "",
+                    "employee_no": "",
+                    "alias": item["alias"],
+                    "corp_name": "深圳市嘉立创科技集团",
+                    "avatar_url": "",
+                    "type": "企业内部员工"
+                }
+                contacts.insert(0, new_c)
+                by_dept[target_dept].append(new_c)
 
     # 3. 加载外部微信客户与外部联系人 (MultiSyncBusiness_8)
     try:
