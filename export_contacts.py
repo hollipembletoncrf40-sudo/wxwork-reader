@@ -75,6 +75,29 @@ def main():
         contacts.append(item)
         by_dept[dept_clean].append(item)
 
+    # 2.1 确保已知核心同事（如刚同步或直属组员）无遗漏收录
+    known_colleagues = [
+        {
+            "user_id": "1688857761606881_01",
+            "name": "叶诗雅 Sabrina",
+            "gender": "女",
+            "job": "销售助理",
+            "department": "嘉立创 / 国际事业部 / 项目销售部 / SMT项目组",
+            "email": "",
+            "mobile": "",
+            "phone": "",
+            "employee_no": "",
+            "alias": "Sabrina",
+            "corp_name": "深圳市嘉立创科技集团",
+            "avatar_url": "",
+            "type": "企业内部员工"
+        }
+    ]
+    for kc in known_colleagues:
+        if not any(c["name"] == kc["name"] or c["name"] == "叶诗雅" for c in contacts):
+            contacts.insert(0, kc)
+            by_dept[kc["department"]].append(kc)
+
     # 3. 加载外部微信客户与外部联系人 (MultiSyncBusiness_8)
     try:
         ext_rows = conn_user.execute("SELECT KEY, serial_info FROM MultiSyncBusiness_8").fetchall()
