@@ -1,6 +1,16 @@
 # 🏢 WXWork Reader & Decryptor (企业微信数据提取与全量解密工具)
 
-一款专为 macOS 与 Windows 设计的企业微信（WeCom / WXWork）本地数据库内存密钥嗅探、wxSQLite3 AES-128-CBC 数据库解密、Protobuf 消息解析、组织架构通讯录导出及全量群聊聊天记录导出工具。
+一款专为 macOS 与 Windows 设计的企业微信（WeCom / WXWork）本地数据库内存密钥嗅探、wxSQLite3 AES-128-CBC 数据库解密、Protobuf 消息解析、组织架构通讯录导出、各业务群对接责任人速查手册及全量群聊聊天记录导出工具。
+
+---
+
+## 📚 详细文档导航
+
+| 文档名称 | 内容描述 | 快速链接 |
+| :--- | :--- | :--- |
+| **工作对接责任人与业务 SOP 手册** | 详细记录 17+ 业务群找谁、谁负责什么、以及问题提报规范 | [📘 查看责任人手册](docs/WORK_RESPONSIBILITY_AND_SOP_HANDBOOK.md) |
+| **技术架构与逆向解密原理** | wxSQLite3 AES-128-CBC、Mach 内核内存扫描、Protobuf 反序列化 | [🔬 查看技术原理](docs/ARCHITECTURE_AND_CRYPTO.md) |
+| **命令行与 Python API 使用指南** | 全指令参数详解、终端交互 REPL、Python 库调用示例 | [🛠️ 查看 API 指南](docs/CLI_AND_API_GUIDE.md) |
 
 ---
 
@@ -77,22 +87,20 @@ python3 export_contacts.py
 
 ---
 
-## 🛠️ CLI 命令行工具使用指南
-
-`wxwork_reader.py` 提供了丰富的命令行工具集与交互式 REPL：
+## 🛠️ CLI 命令行工具常用示例
 
 ```bash
 # 1. 查看数据库状态诊断
 python3 wxwork_reader.py status
 
-# 2. 列出会话列表
+# 2. 列出最活跃的 30 个会话
 python3 wxwork_reader.py chats --limit 30 --sort-by messages
 
 # 3. 检索通讯录联系人
-python3 wxwork_reader.py contacts --search "销售"
+python3 wxwork_reader.py contacts --search "销售助理"
 
 # 4. 读取指定群聊的详细对话
-python3 wxwork_reader.py read "SMT工程" --limit 50
+python3 wxwork_reader.py read "SMT工程 & 外贸" --limit 50
 
 # 5. 全文检索关键词
 python3 wxwork_reader.py search "发货"
